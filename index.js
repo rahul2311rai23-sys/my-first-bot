@@ -6,6 +6,7 @@ async function startBot() {
     const sock = makeWASocket({
         logger: pino({ level: 'silent' }),
         auth: state,
+        printQRInTerminal: true
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -13,30 +14,30 @@ async function startBot() {
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
         if (!msg.message) return;
-
-        const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+        
         const from = msg.key.remoteJid;
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
 
-        // Command: .sticker
-        if (body === '.sticker') {
-            console.log("Sticker command received");
-            // Yahan sticker processing ka code aayega
+        // 1. .sticker command
+        if (text === '.sticker') {
+            await sock.sendMessage(from, { text: 'Sticker feature active!' });
         }
 
-        // Command: .yt ya .ig
-        if (body.startsWith('.yt') || body.startsWith('.ig')) {
-            console.log("Downloading media...");
+        // 2. .yt aur .ig command
+        if (text.startsWith('.yt') || text.startsWith('.ig')) {
+            await sock.sendMessage(from, { text: 'Downloading media, please wait...' });
         }
 
-        // View Once Handler
+        // 3. View Once Handler (Auto detect)
         if (msg.message.viewOnceMessage) {
-            console.log("View Once message detected!");
+            await sock.sendMessage(from, { text: 'View Once message detected!' });
         }
     });
 
     sock.ev.on('connection.update', (update) => {
-        if (update.connection === 'open') console.log('Bot is ready! Pong.');
-        if (update.connection === 'close') startBot();
+        const { connection } = update;
+        if (connection === 'open') console.log('Bot is ready! Pong.');
+        if (connection === 'close') startBot();
     });
 }
 
